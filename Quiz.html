@@ -1,0 +1,362 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz App</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .card {
+      background: #ffffff;
+
+      width: 430px;
+      min-height: auto;
+
+      padding: 20px;
+
+      border-radius: 18px;
+
+      box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.08),
+        0 16px 40px rgba(102, 126, 234, 0.12);
+
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      transition: box-shadow 0.3s ease;
+    }
+
+    h3 {
+      margin: 0 0 25px;
+      font-size: 28px;
+      color: #333;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    #answers {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+
+      border: none;
+      border-radius: 10px;
+
+      cursor: pointer;
+
+      font-size: 17px;
+      font-weight: bold;
+
+      transition: 0.25s;
+
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+    .answer:nth-of-type(1) {
+      border-left: 6px solid #3498db;
+    }
+
+    .answer:nth-of-type(2) {
+      border-left: 6px solid #9b59b6;
+    }
+
+    .answer:nth-of-type(3) {
+      border-left: 6px solid #e67e22;
+    }
+
+    .answer:nth-of-type(4) {
+      border-left: 6px solid #2ecc71;
+    }
+
+    .correct {
+      background: #2ecc71;
+      color: white;
+    }
+
+    .wrong {
+      background: #e74c3c;
+      color: white;
+    }
+
+    #next,
+    #reset {
+      margin-top: 20px;
+      padding: 15px;
+      font-size: 17px;
+      font-weight: bold;
+
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+
+      border: none;
+      border-radius: 10px;
+
+      transition: 0.25s;
+    }
+
+    #next:hover,
+    #reset:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    #toast {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+
+      background: #2ecc71;
+      color: white;
+
+      padding: 6px 10px;
+      border-radius: 4px;
+
+      font-size: 15px;
+      font-weight: bold;
+
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+      display: none;
+
+      z-index: 1000;
+    }
+
+    #stats {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+
+      width: 220px;
+
+      background: rgba(255, 255, 255, 0.95);
+      padding: 18px;
+      border-radius: 12px;
+
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+
+      font-family: Arial, sans-serif;
+      z-index: 1000;
+    }
+
+    #stats h3 {
+      margin: 0 0 12px;
+      color: #667eea;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    #stats p {
+      margin: 8px 0;
+      padding: 6px 10px;
+      background: #f5f5f5;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    #stats span {
+      font-weight: bold;
+      color: #764ba2;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="stats">
+    <h3>Chances Left: <span id="lives">3</span></h3>
+
+    <p>Attempt 1: <span id="s1">-</span></p>
+    <p>Attempt 2: <span id="s2">-</span></p>
+    <p>Attempt 3: <span id="s3">-</span></p>
+  </div>
+  <div class="card">
+    <h3 id="question"></h3>
+    <div id="answers"></div>
+    <button id="next">Next</button>
+    <button id="reset">Reset</button>
+  </div>
+  <div id="toast"></div>
+
+
+  <script>
+    const questions = [
+      { q: "What is 2+2?", answers: ["3", "4", "5", "6"], correct: 1 },
+
+      {
+        q: "Capital of France?",
+        answers: ["Berlin", "Madrid", "Paris", "Rome"],
+        correct: 2,
+      },
+
+      {
+        q: "JS stands for?",
+        answers: ["JavaSource", "JavaScript", "JustScript", "JScript"],
+        correct: 1,
+      },
+
+      {
+        q: "HTML is?",
+        answers: [
+          "Programming language",
+          "Markup language",
+          "Database",
+          "OS",
+        ],
+        correct: 1,
+      },
+    ];
+
+
+    let current = 0;
+    let score = 0;
+    let scores = [];
+    let lives = 3;
+    const qEl = document.getElementById("question");
+    const aEl = document.getElementById("answers");
+    const nextBtn = document.getElementById("next");
+    const toast = document.getElementById("toast");
+    const resetBtn = document.getElementById("reset");
+    const livesEl = document.getElementById("lives");
+
+    const s1 = document.getElementById("s1");
+    const s2 = document.getElementById("s2");
+    const s3 = document.getElementById("s3");
+
+    //load the content 
+    function load() {
+      updateStats();
+      resetBtn.style.display = "none";
+      nextBtn.style.display = "none";
+      aEl.innerHTML = "";
+      const q = questions[current]; //q represent the objects in the array 
+
+      qEl.textContent = q.q;
+
+      q.answers.forEach((ans, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = ans;
+        btn.onclick = () => selectAnswer(btn, i);
+        aEl.appendChild(btn);
+      });
+    }
+
+    //toast message
+    function showToast(message) {
+      toast.textContent = message;
+      toast.style.display = "block";
+
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 2000);
+    }
+
+    function selectAnswer(btn, index) {
+      nextBtn.style.display = "block";
+      resetBtn.style.display = "none";
+      const correctIndex = questions[current].correct;
+      const buttons = aEl.querySelectorAll("button");
+
+      buttons.forEach((b, i) => {
+        b.disabled = true;
+        if (i == correctIndex) {
+          b.classList.add("correct");
+          toast
+
+
+        }
+        if (i == index && i !== correctIndex) {
+          b.classList.add("wrong");
+        }
+
+
+      });
+      if (index == correctIndex) {
+        score++;
+        showToast("YOUR ANSWER IS CORRECT!");
+      }
+    }
+
+    //resetButton
+    function resetButton() {
+
+      lives--;
+
+      updateStats();
+
+      if (lives == 0) {
+
+        qEl.textContent = "Game Over!";
+        aEl.innerHTML = "";
+
+        resetBtn.style.display = "none";
+        nextBtn.style.display = "none";
+
+        return;
+      }
+
+      current = 0;
+      score = 0;
+
+      resetBtn.style.display = "none";
+
+      load();
+    }
+
+    function updateStats() {
+
+      livesEl.textContent = lives;
+
+      s1.textContent = scores[0] ?? "-";
+      s2.textContent = scores[1] ?? "-";
+      s3.textContent = scores[2] ?? "-";
+
+    }
+
+    nextBtn.onclick = () => {
+      current++;
+      if (current < questions.length)
+        load();
+      else {
+        scores.push(score);
+        updateStats();
+        qEl.textContent = `You scored ${score} of 4`
+        aEl.innerHTML = "";
+        nextBtn.style.display = "none";
+        resetBtn.style.display = "block";
+        resetBtn.onclick = resetButton;
+
+
+
+      }
+
+    };
+    load();
+
+
+  </script>
+</body>
+
+</html>
